@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Sidebar from "@/components/chat/Sidebar";
-import SuggestionCard from "@/components/chat/SuggestionCard";
 import MessageInput from "@/components/chat/MessageInput";
 import StatusBar from "@/components/chat/StatusBar";
 import { MOCK_USER, SUGGESTIONS } from "@/lib/mockChat";
@@ -30,21 +29,13 @@ export default async function ChatPage() {
               วันนี้อยากให้ AI ช่วยอะไรบ้าง?
             </p>
 
-            <div className="grid grid-cols-2 gap-4">
-              <SuggestionCard
-                suggestion={SUGGESTIONS[0]}
-                className="col-span-2"
-              />
-              <SuggestionCard suggestion={SUGGESTIONS[1]} />
-              <SuggestionCard suggestion={SUGGESTIONS[2]} />
-            </div>
           </div>
         </div>
 
         <div className="border-t border-slate-200 bg-slate-50 px-10 py-5">
           <div className="max-w-4xl mx-auto">
             <MessageInput />
-            <StatusBar tokensUsed={1420} />
+            <StatusBar tokensUsed={1000} />
           </div>
         </div>
       </main>

@@ -115,10 +115,18 @@
 **AI ตอบว่า:** แตกเป็น components ตามโครง — `types/chat.ts` (types), `lib/mockChat.ts` (data จำลอง), `components/chat/Sidebar.tsx` (logo + ปุ่มแชทใหม่ + history + profile + logout), `components/chat/SuggestionCard.tsx` (การ์ดแนะนำ มี icon 3 แบบ: document/code/lightbulb), `components/chat/MessageInput.tsx` (ช่อง chat + attach/mic/send), `components/chat/StatusBar.tsx` (SYSTEM OPTIMAL + token counter), แล้วประกอบใน `app/chat/page.tsx` ที่ยังเป็น Server Component ตรวจ cookie auth_token ก่อน — ลบ LogoutButton.tsx เดิมเพราะรวมเข้า Sidebar แล้ว ใช้ lucide-react icons ทุกตัว
 **สิ่งที่เราปรับเอง:** -
 
+## Session 24: เชื่อม MongoDB ใน backend ให้รันได้จริง
+**คำถามที่ถาม AI:** "ให้ทำ 1-4 เลยรัน" โดยหมายถึงติดตั้ง `mongoose` กับ `dotenv`, เขียน `src/app.js` ให้เชื่อม Mongo ตอนสตาร์ต, เพิ่ม script ใน `package.json` และทดสอบให้ว่าเชื่อมได้จริง
+**AI ตอบว่า:** ติดตั้ง `mongoose`, `dotenv` และ `nodemon`, ปรับ `backend/package.json` ให้มี `type: module` พร้อม script `start` และ `dev`, เขียน `backend/src/app.js` ให้โหลด `.env` เรียก `connectMongo()` ก่อนเปิด server, เพิ่ม route พื้นฐานใน `backend/src/routes/index.js` และทดสอบจนยืนยันได้ว่า Mongo เชื่อมสำเร็จพร้อมเรียก `http://127.0.0.1:4000/health` ได้ผล `{\"ok\":true}`
+**สิ่งที่เราปรับเอง:** -
 
 
+## Session 25: ตั้งชื่อ commit สำหรับงาน backend และ Docker
+**คำถามที่ถาม AI:** "ฉันจะตั้งชื่อ commit ใน github ว่าอะไรดี และมีไฟล์ docker อีก"
+**AI ตอบว่า:** แนะนำให้ตั้งชื่อ commit ตามก้อนงานจริง โดยถ้ารวมงาน backend MongoDB และ Docker ไว้ก้อนเดียวใช้ชื่อประมาณ `feat(backend): add MongoDB connection and docker compose setup` แต่ถ้าอยากให้ประวัติอ่านง่ายควรแยก commit ของ backend กับ Docker ออกจาก frontend
+**สิ่งที่เราปรับเอง:** -
 
-
-
-
-
+## Session 26: อธิบายคำว่า feat ในชื่อ commit
+**คำถามที่ถาม AI:** "feat คืออะไร"
+**AI ตอบว่า:** `feat` ย่อมาจาก `feature` ใช้ในชื่อ commit เพื่อบอกว่า commit นี้เพิ่มความสามารถใหม่หรือฟีเจอร์ใหม่ให้โปรเจกต์ ไม่ใช่การแก้บั๊กหรือจัดรูปแบบโค้ดเฉยๆ
+**สิ่งที่เราปรับเอง:** -
