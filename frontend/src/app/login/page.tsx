@@ -9,30 +9,28 @@ import { Lock, Mail, Shield, MessageCircle, EyeOff, Eye } from "lucide-react";
 export default function LoginPage() {
   const router = useRouter();
   const [tab, setTab] = useState<"login" | "signup">("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("admin");
+  const [password, setPassword] = useState("admin123");
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const { login } = useAuth();
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
-    setIsSubmitting(true);
 
     const username = email.includes("@") ? email.split("@")[0] : email;
     try {
       await login(username, password);
       router.push("/chat");
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setLoading(false);
-      setIsSubmitting(false);
     }
   }
 

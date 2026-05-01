@@ -1,25 +1,33 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-
-const AUTH_COOKIE = "auth_token";
-const ONE_DAY = 60 * 60 * 24;
+import {
+  getCurrentUser,
+  loginUser,
+  logoutUser,
+  registerUser,
+} from "@/api/auth";
 
 export function useAuth() {
   const router = useRouter();
 
   async function login(username: string, password: string) {
-    if (username === "admin" && password === "admin123") {
-      document.cookie = `${AUTH_COOKIE}=mock-token-${Date.now()}; path=/; max-age=${ONE_DAY}; SameSite=Lax`;
-      return;
-    }
-    throw new Error("อีเมลหรือรหัสผ่านไม่ถูกต้อง (ลอง admin / admin123)");
+    return loginUser(username, password);
   }
 
-  function logout() {
-    document.cookie = `${AUTH_COOKIE}=; path=/; max-age=0`;
+  async function register(email: string, password: string) {
+    return registerUser(email, password);
+  }
+
+  async function currentUser() {
+    return getCurrentUser();
+  }
+
+  async function logout() {
+    await logoutUser();
     router.push("/login");
+    router.refresh();
   }
 
-  return { login, logout };
+  return { currentUser, login, logout, register };
 }

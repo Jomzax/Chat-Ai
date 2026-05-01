@@ -4,7 +4,7 @@ export const MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024;
 export const ALLOWED_UPLOAD_EXTENSIONS = [".pdf", ".txt"];
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:4000/api";
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api";
 
 export function validateUploadFile(file: File) {
   const extension = `.${file.name.split(".").pop()?.toLowerCase() ?? ""}`;
@@ -26,6 +26,7 @@ export async function uploadDocument(file: File) {
 
   const response = await fetch(`${API_BASE_URL}/uploads`, {
     method: "POST",
+    credentials: "include",
     body: formData,
   });
 
@@ -44,6 +45,7 @@ export async function uploadDocument(file: File) {
 export async function deleteDocument(fileId: string) {
   const response = await fetch(`${API_BASE_URL}/uploads/${fileId}`, {
     method: "DELETE",
+    credentials: "include",
   });
 
   const payload = (await response.json().catch(() => null)) as

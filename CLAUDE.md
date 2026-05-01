@@ -43,6 +43,34 @@ frontend/src/
 └── validators/   ← form/data validators (zod, yup)
 ```
 
+**ให้ยึดโครงสร้างนี้ folder เหล่านี้และจะสร้างเพิ่มได้ถ้ามันเหมาะสมกับงาน  — ผู้ใช้ตัดสินใจไว้แล้ว**
+```
+backend/
+├── nodemon.json
+├── package.json
+├── src/
+│   ├── app.js
+│   ├── controllers/
+│   │   ├── authController.js
+│   │   ├── chatController.js
+│   │   └── uploadController.js
+│   ├── db/
+│   │   └── mongo.js
+│   ├── middlewares/
+│   │   ├── auth.js
+│   │   └── upload.js
+│   ├── models/
+│   │   ├── upload.js
+│   │   └── user.js
+│   ├── routes/
+│   │   └── index.js
+│   ├── services/
+│   │   ├── aiClient.js
+│   │   ├── authService.js
+│   │   └── uploadCleanup.js
+│   └── uploads/
+```
+
 ### กติกาเพิ่มเติม
 
 - **ไฟล์ใหม่ทุกตัวต้องอยู่ใน folder ที่เหมาะสม** ห้ามทิ้ง root หรือสร้าง folder ใหม่นอกรายการนี้โดยไม่ขออนุญาต

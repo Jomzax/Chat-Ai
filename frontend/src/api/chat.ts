@@ -1,7 +1,7 @@
 import type { ChatMessage } from "@/types/chat";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:4000/api";
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api";
 
 type StreamChatOptions = {
   messages: Pick<ChatMessage, "role" | "content">[];
@@ -19,6 +19,7 @@ export async function streamChat({
     headers: {
       "Content-Type": "application/json",
     },
+    credentials: "include",
     body: JSON.stringify({ messages }),
     signal,
   });

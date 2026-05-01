@@ -3,11 +3,30 @@ import { redirect } from "next/navigation";
 import ChatPanel from "@/components/chat/ChatPanel";
 import Sidebar from "@/components/chat/Sidebar";
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api";
+
+export const dynamic = "force-dynamic";
+
 export default async function ChatPage() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("auth_token");
+  const cookieHeader = cookieStore
+    .getAll()
+    .map((cookie) => `${cookie.name}=${cookie.value}`)
+    .join("; ");
 
-  if (!token) {
+  const sessionIsValid = cookieHeader
+    ? await fetch(`${API_BASE_URL}/auth/session`, {
+        headers: {
+          Cookie: cookieHeader,
+        },
+        cache: "no-store",
+      })
+        .then((response) => response.ok)
+        .catch(() => false)
+    : false;
+
+  if (!sessionIsValid) {
     redirect("/login");
   }
 

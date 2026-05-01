@@ -129,3 +129,5 @@
 **คำถามที่ถาม AI:** อ่าน `CLAUDE.md` กับ `.claude` และทำต่อใน Required Feature `Chat with AI (basic)` ให้ครบ error handling + timeout พร้อม Bonus `Streaming response` และบันทึก `AI_JOURNAL.md`
 **AI ตอบว่า:** เพิ่มระบบ chat streaming จริง โดยมี backend endpoint `POST /api/chat/stream`, service สำหรับ Gemini/Claude พร้อม mock fallback, timeout, validation และหน้า chat ฝั่ง frontend ที่อ่าน stream ทีละ chunk แล้วแสดงคำตอบสดและภาษาไทยได้ 
 **สิ่งที่เราปรับเอง:** ไม่บันทึกค่า API key จริงลง journal และ เพิ่มกติกาไม่ใส่ emoji ถ้าไม่จำเป็นและไม่แต่งข้อมูลเอง
+
+
