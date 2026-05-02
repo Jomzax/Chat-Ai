@@ -110,7 +110,7 @@ export default function Sidebar({
   }
 
   return (
-    <aside className="flex h-screen w-[320px] flex-col border-r border-slate-200 bg-white text-slate-900">
+    <aside className="flex h-full w-[320px] flex-shrink-0 flex-col border-r border-slate-200 bg-white text-slate-900">
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600">
