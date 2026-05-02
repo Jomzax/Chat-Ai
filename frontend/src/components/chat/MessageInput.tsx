@@ -336,13 +336,6 @@ export default function MessageInput({
             className="flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:opacity-60"
           />
           <button
-            type="button"
-            title="Voice input"
-            className="p-2 text-slate-400 transition hover:text-slate-600"
-          >
-            <Mic className="h-5 w-5" />
-          </button>
-          <button
             type="submit"
             disabled={isBusy}
             className="rounded-xl bg-indigo-600 p-2.5 text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-2xl sm:p-3"

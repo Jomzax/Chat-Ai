@@ -33,6 +33,53 @@ function isDraftSession(session: ChatSession) {
   );
 }
 
+function ChatWorkspaceSkeleton() {
+  return (
+    <div className="flex h-[100dvh] overflow-hidden bg-slate-50">
+      <aside className="hidden w-[320px] flex-shrink-0 border-r border-slate-200 bg-white md:block">
+        <div className="space-y-4 px-5 py-4">
+          <div className="h-9 w-36 animate-pulse rounded-lg bg-slate-200" />
+          <div className="h-11 animate-pulse rounded-lg bg-slate-100" />
+          <div className="h-11 animate-pulse rounded-lg bg-slate-100" />
+        </div>
+        <div className="space-y-2 px-3 pt-3">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <div
+              key={`sidebar-skeleton-${index}`}
+              className="h-11 animate-pulse rounded-lg bg-slate-100"
+            />
+          ))}
+        </div>
+      </aside>
+
+      <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="border-b border-slate-200 bg-white px-4 py-2 md:hidden">
+          <div className="h-9 w-9 animate-pulse rounded-lg bg-slate-200" />
+        </div>
+        <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-10">
+          <div className="mx-auto max-w-4xl space-y-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={`chat-skeleton-${index}`}
+                className={`flex ${
+                  index % 2 === 0 ? "justify-start" : "justify-end"
+                }`}
+              >
+                <div className="h-24 w-full max-w-[88%] animate-pulse rounded-2xl bg-slate-200 sm:max-w-[72%]" />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="shrink-0 border-t border-slate-200 bg-slate-50 px-4 py-3 sm:px-6 lg:px-10">
+          <div className="mx-auto max-w-4xl">
+            <div className="h-24 animate-pulse rounded-[24px] bg-slate-200" />
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
 export default function ChatWorkspace() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState("");
@@ -106,6 +153,7 @@ export default function ChatWorkspace() {
       null,
     [activeSessionId, sessions]
   );
+
   const sidebarSessions = useMemo(
     () => sessions.filter((session) => !isDraftSession(session)),
     [sessions]
@@ -143,7 +191,6 @@ export default function ChatWorkspace() {
     }
 
     const existingDraftSession = sessions.find(isDraftSession);
-
     if (existingDraftSession) {
       setActiveSessionId(existingDraftSession.id);
       return;
@@ -151,7 +198,6 @@ export default function ChatWorkspace() {
 
     try {
       const session = await createConversation({ title: DEFAULT_TITLE });
-
       setSessions((current) => [session, ...current]);
       setActiveSessionId(session.id);
       setSyncError("");
@@ -195,11 +241,9 @@ export default function ChatWorkspace() {
 
     setSessions((current) => {
       const remaining = current.filter((session) => session.id !== sessionId);
-
       if (sessionId === activeSessionId) {
         setActiveSessionId(remaining[0]?.id ?? "");
       }
-
       return remaining;
     });
 
@@ -234,6 +278,7 @@ export default function ChatWorkspace() {
     setSessions((current) => {
       const updatedAt = Date.now();
       let updatedSession: ChatSession | null = null;
+
       const nextSessions = current
         .map((session) => {
           if (session.id !== activeSession.id) {
@@ -267,11 +312,7 @@ export default function ChatWorkspace() {
   }
 
   if (!hasLoaded) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 text-sm text-slate-500">
-        กำลังโหลดประวัติแชท...
-      </div>
-    );
+    return <ChatWorkspaceSkeleton />;
   }
 
   if (!activeSession) {
@@ -305,6 +346,7 @@ export default function ChatWorkspace() {
         }`}
         onClick={() => setIsMobileSidebarOpen(false)}
       />
+
       <div
         className={`fixed inset-y-0 left-0 z-50 transition-transform duration-200 md:hidden ${
           isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
@@ -334,11 +376,13 @@ export default function ChatWorkspace() {
             <PanelLeft className="h-5 w-5" />
           </button>
         </div>
+
         {syncError ? (
           <div className="border-b border-amber-200 bg-amber-50 px-6 py-2 text-sm text-amber-700">
             {syncError}
           </div>
         ) : null}
+
         <ChatPanel
           key={activeSession.id}
           sessionId={activeSession.id}
