@@ -24,6 +24,14 @@ function createTitleFromMessage(message: string) {
   return trimmed.length > 34 ? `${trimmed.slice(0, 34)}...` : trimmed;
 }
 
+function isDraftSession(session: ChatSession) {
+  return (
+    session.messages.length === 0 &&
+    !session.titleEdited &&
+    session.title.trim() === DEFAULT_TITLE
+  );
+}
+
 export default function ChatWorkspace() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState("");
@@ -47,8 +55,12 @@ export default function ChatWorkspace() {
           return;
         }
 
+        const initialActiveSession =
+          initialSessions.find((session) => !isDraftSession(session)) ??
+          initialSessions[0];
+
         setSessions(initialSessions);
-        setActiveSessionId(initialSessions[0].id);
+        setActiveSessionId(initialActiveSession.id);
         setSyncError("");
       } catch (error) {
         if (mounted) {
@@ -80,6 +92,10 @@ export default function ChatWorkspace() {
       null,
     [activeSessionId, sessions]
   );
+  const sidebarSessions = useMemo(
+    () => sessions.filter((session) => !isDraftSession(session)),
+    [sessions]
+  );
 
   function queueSaveSession(session: ChatSession) {
     window.clearTimeout(saveTimersRef.current[session.id]);
@@ -107,6 +123,18 @@ export default function ChatWorkspace() {
   }
 
   async function handleNewChat() {
+    if (activeSession && isDraftSession(activeSession)) {
+      setActiveSessionId(activeSession.id);
+      return;
+    }
+
+    const existingDraftSession = sessions.find(isDraftSession);
+
+    if (existingDraftSession) {
+      setActiveSessionId(existingDraftSession.id);
+      return;
+    }
+
     try {
       const session = await createConversation({ title: DEFAULT_TITLE });
 
@@ -242,7 +270,7 @@ export default function ChatWorkspace() {
   return (
     <div className="flex flex-col-1 mt-0 min-h-screen bg-slate-50 text-slate-900">
       <Sidebar
-        sessions={sessions}
+        sessions={sidebarSessions}
         activeSessionId={activeSession.id}
         onNewChat={handleNewChat}
         onSelectSession={handleSelectSession}
