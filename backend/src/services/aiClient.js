@@ -28,14 +28,18 @@ const CHAT_STYLE_VARIANTS = [
   'ตอบแบบเพื่อนคุยกัน สั้น ชัด ตรงประเด็น',
   'ใช้ประโยคธรรมชาติแบบคนพิมพ์แชทจริง ไม่เป็นทางการเกินไป',
   'ตอบกระชับและมีจังหวะสนทนา หลีกเลี่ยงคำซ้ำ',
-  'ถ้าคำตอบง่าย ให้ตอบไม่เกิน 2-4 ประโยค',
+  'ถ้าคำตอบง่าย ให้ตอบไม่เกิน 3-10 ประโยค',
 ];
 const BASE_SYSTEM_PROMPT = [
   'คุณคือผู้ช่วย AI ในเว็บแชท',
   'ตอบเป็นภาษาเดียวกับผู้ใช้เป็นหลัก',
   'เขียนให้เหมือนคนพิมพ์แชทจริง กระชับ เป็นธรรมชาติ',
   'ตัดคำฟุ่มเฟือย คำเกริ่น และการทวนคำถามที่ไม่จำเป็น',
+  'หลีกเลี่ยงคำลงท้ายสุภาพที่กิน token เช่น ครับ, ค่ะ, คะ, นะครับ, นะคะ เว้นแต่ผู้ใช้ขอให้ใช้โทนนั้น',
   'ห้ามตอบยาวถ้าผู้ใช้ไม่ได้ขอรายละเอียด',
+  'ตอบให้สั้นแต่ครบประเด็นสำคัญ ห้ามตัดหัวข้อหลักที่อยู่ในเอกสารออก',
+  'ถ้าเอกสารมีหลายส่วน ให้สรุปส่วนละ 1 bullet เท่านั้น เว้นแต่ผู้ใช้ขอรายละเอียด',
+  'หลีกเลี่ยง bullet ซ้อน ใช้ 1 บรรทัดต่อ 1 หัวข้อหลัก',
   'ไม่ใส่ emoji ถ้าผู้ใช้ไม่ได้ใช้หรือไม่ได้ขอ',
   'อย่าแต่งข้อมูลขึ้นเอง ถ้าไม่มีข้อมูลให้ตอบตรงๆ ว่าไม่แน่ใจ',
   'ถ้าไม่แน่ใจให้ถามกลับสั้นๆ แทนการเดายาว',
@@ -47,28 +51,27 @@ const BASE_SYSTEM_PROMPT = [
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const getEnvList = (multiKey, singleKey) => {
-  const values = [
-    ...(process.env[multiKey] || '')
-      .split(',')
-      .map((value) => value.trim())
-      .filter(Boolean),
-    process.env[singleKey],
-  ].filter(Boolean);
-
-  return [...new Set(values)];
-};
+const getEnvList = (key) =>
+  [
+    ...new Set(
+      (process.env[key] || '')
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean)
+    ),
+  ];
 
 const createProviderError = (
   message,
   statusCode = 502,
-  { provider, upstreamStatus, keyIndex } = {}
+  { provider, upstreamStatus, keyIndex, retryAfterMs } = {}
 ) => {
   const error = new Error(message);
   error.statusCode = statusCode;
   error.provider = provider;
   error.upstreamStatus = upstreamStatus;
   error.keyIndex = keyIndex;
+  error.retryAfterMs = retryAfterMs;
   return error;
 };
 
@@ -150,7 +153,7 @@ const streamMockResponse = async ({ messages, onChunk, signal }) => {
     '',
     `I received: **${lastUserMessage}**`,
     '',
-    '- Add `GEMINI_API_KEY` or `ANTHROPIC_API_KEY` to use a real AI provider.',
+    '- Add `GEMINI_API_KEYS` or `ANTHROPIC_API_KEYS` to use a real AI provider.',
     '- Markdown rendering is active for assistant messages.',
   ].join('\n');
 
@@ -185,6 +188,22 @@ const parseGeminiSseLine = (line) => {
       .map((part) => part.text || '')
       .join('') || ''
   );
+};
+
+const parseRetryAfterMs = (rawText) => {
+  const text = String(rawText || '');
+
+  const retryInfoMatch = text.match(/"retryDelay"\s*:\s*"(\d+)s"/i);
+  if (retryInfoMatch) {
+    return Number(retryInfoMatch[1]) * 1000;
+  }
+
+  const plainSecondsMatch = text.match(/Please retry in\s+([\d.]+)s/i);
+  if (plainSecondsMatch) {
+    return Math.ceil(Number(plainSecondsMatch[1]) * 1000);
+  }
+
+  return null;
 };
 
 const createGeminiGenerationConfig = () => {
@@ -232,6 +251,7 @@ const streamGeminiResponse = async ({
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => '');
+    const retryAfterMs = response.status === 429 ? parseRetryAfterMs(errorText) : null;
     throw createProviderError(
       `Gemini request failed (${response.status}). ${errorText}`.trim(),
       response.status === 429 || response.status >= 500 ? 502 : 400,
@@ -239,6 +259,7 @@ const streamGeminiResponse = async ({
         provider: 'gemini',
         upstreamStatus: response.status,
         keyIndex,
+        retryAfterMs,
       }
     );
   }
@@ -366,8 +387,8 @@ const streamClaudeResponse = async ({
 };
 
 export const streamAiChat = async ({ messages, onChunk, signal }) => {
-  const geminiKeys = getEnvList('GEMINI_API_KEYS', 'GEMINI_API_KEY');
-  const claudeKeys = getEnvList('ANTHROPIC_API_KEYS', 'ANTHROPIC_API_KEY');
+  const geminiKeys = getEnvList('GEMINI_API_KEYS');
+  const claudeKeys = getEnvList('ANTHROPIC_API_KEYS');
   const hasConfiguredProvider = geminiKeys.length > 0 || claudeKeys.length > 0;
   const providers = [
     ...createProviderAttempts({
@@ -403,6 +424,7 @@ export const streamAiChat = async ({ messages, onChunk, signal }) => {
     let hasStreamedChunk = false;
 
     try {
+      console.info(`Trying AI provider ${provider.name}`);
       await provider.stream({
         apiKey: provider.apiKey,
         keyIndex: provider.keyIndex,
@@ -413,6 +435,7 @@ export const streamAiChat = async ({ messages, onChunk, signal }) => {
           onChunk(chunk);
         },
       });
+      console.info(`AI provider ${provider.name} completed successfully`);
       return;
     } catch (error) {
       lastError = error;

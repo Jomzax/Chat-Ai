@@ -8,8 +8,8 @@ import type { UploadedDocument } from "@/types/upload";
 import MarkdownMessage from "./MarkdownMessage";
 import MessageInput from "./MessageInput";
 
-const MAX_CONTEXT_MESSAGES = 8; //กำหนดจำนวนข้อความสูงสุดที่จะส่งไปยังโมเดลในแต่ละรอบแชท
-const MAX_SESSION_TOKENS = 20;  //กำหนดจำนวน tokens สูงสุดที่อนุญาตในแชทหนึ่งครั้ง
+const MAX_CONTEXT_MESSAGES = 1000; //กำหนดจำนวนข้อความสูงสุดที่จะส่งไปยังโมเดลในแต่ละรอบแชท
+const MAX_SESSION_TOKENS = 30000;  //กำหนดจำนวน tokens สูงสุดที่อนุญาตในแชทหนึ่งครั้ง
 const TOKEN_RESET_MS = 5 * 60 * 1000; //กำหนดเวลาที่ต้องรอก่อนที่จะรีเซ็ตจำนวน tokens (ในที่นี้คือ 5 นาที)
 
 const createId = () =>

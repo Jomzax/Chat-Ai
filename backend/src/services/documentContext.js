@@ -4,7 +4,7 @@ import Upload from '../models/upload.js';
 
 const LINES_PER_CHUNK = 28;
 const LINE_OVERLAP = 4;
-const MAX_CONTEXT_CHARS = Number(process.env.DOCUMENT_CONTEXT_CHARS || 12000);
+const MAX_CONTEXT_CHARS = Number(process.env.DOCUMENT_CONTEXT_CHARS || 80000);
 const MAX_DOCUMENTS_PER_CHAT = Number(process.env.MAX_DOCUMENTS_PER_CHAT || 5);
 
 const normalizeText = (text) =>
@@ -99,7 +99,9 @@ export const buildDocumentIndex = async ({ filePath, extension }) => {
 const documentNeedsReindex = (document) =>
   !Array.isArray(document.chunks) ||
   document.chunks.length === 0 ||
-  document.chunks.some((chunk) => !chunk.pageNumber || !chunk.lineStart || !chunk.lineEnd);
+  document.chunks.some(
+    (chunk) => !chunk.pageNumber || !chunk.lineStart || !chunk.lineEnd
+  );
 
 const ensureDocumentIndexed = async (document) => {
   if (!documentNeedsReindex(document)) {
@@ -150,6 +152,35 @@ const scoreChunk = (chunk, queryTokens) => {
   return score;
 };
 
+const isWholeDocumentQuery = (query) => {
+  const normalized = normalizeText(query).toLowerCase();
+
+  return [
+    'ทั้งไฟล์',
+    'ทั้งเอกสาร',
+    'ทั้งหมด',
+    'ครบทั้งไฟล์',
+    'ครบทั้งเอกสาร',
+    'สรุปไฟล์',
+    'สรุปเอกสาร',
+    'สรุปเนื้อหา',
+    'มีอะไรบ้าง',
+    'มีอะไรในไฟล์',
+    'ในไฟล์มีอะไร',
+    'ทุกส่วน',
+    'ทุกหัวข้อ',
+    'full file',
+    'whole file',
+    'entire file',
+    'full document',
+    'whole document',
+    'entire document',
+    'summarize',
+    'summary',
+    'overview',
+  ].some((keyword) => normalized.includes(keyword));
+};
+
 const createMetadataOnlyDocument = (document) => ({
   id: document.id,
   originalName: document.originalName,
@@ -162,6 +193,57 @@ const createMetadataOnlyDocument = (document) => ({
   textPreview: document.textPreview || '',
   chunks: [],
 });
+
+const createRankedChunks = (indexedDocuments, queryTokens) => {
+  const chunks = [];
+
+  for (const document of indexedDocuments) {
+    for (const chunk of document.chunks || []) {
+      chunks.push({
+        documentName: document.originalName,
+        chunkIndex: chunk.index,
+        pageNumber: chunk.pageNumber || 1,
+        lineStart: chunk.lineStart || 1,
+        lineEnd: chunk.lineEnd || chunk.lineStart || 1,
+        text: chunk.text,
+        score: scoreChunk(chunk, queryTokens),
+      });
+    }
+  }
+
+  return chunks;
+};
+
+const selectChunks = ({ rankedChunks, shouldUseWholeDocument }) => {
+  if (shouldUseWholeDocument) {
+    return [...rankedChunks].sort(
+      (a, b) =>
+        a.documentName.localeCompare(b.documentName) ||
+        a.chunkIndex - b.chunkIndex
+    );
+  }
+
+  const sortedChunks = [...rankedChunks].sort(
+    (a, b) =>
+      b.score - a.score ||
+      a.documentName.localeCompare(b.documentName) ||
+      a.chunkIndex - b.chunkIndex
+  );
+
+  return [
+    ...sortedChunks
+      .filter((chunk) => chunk.chunkIndex === 1)
+      .slice(0, MAX_DOCUMENTS_PER_CHAT),
+    ...sortedChunks.filter((chunk) => chunk.score > 0).slice(0, 8),
+  ].filter(
+    (chunk, index, all) =>
+      all.findIndex(
+        (candidate) =>
+          candidate.documentName === chunk.documentName &&
+          candidate.chunkIndex === chunk.chunkIndex
+      ) === index
+  );
+};
 
 export const getRelevantDocumentContext = async ({
   documentIds = [],
@@ -187,42 +269,9 @@ export const getRelevantDocumentContext = async ({
     .filter((document) => document?.id && !storedIds.has(document.id))
     .map(createMetadataOnlyDocument);
   const documents = [...indexedDocuments, ...metadataDocuments];
-  const queryTokens = tokenize(query);
-  const rankedChunks = [];
-
-  for (const document of indexedDocuments) {
-    for (const chunk of document.chunks || []) {
-      rankedChunks.push({
-        documentName: document.originalName,
-        chunkIndex: chunk.index,
-        pageNumber: chunk.pageNumber || 1,
-        lineStart: chunk.lineStart || 1,
-        lineEnd: chunk.lineEnd || chunk.lineStart || 1,
-        text: chunk.text,
-        score: scoreChunk(chunk, queryTokens),
-      });
-    }
-  }
-
-  rankedChunks.sort(
-    (a, b) =>
-      b.score - a.score ||
-      a.documentName.localeCompare(b.documentName) ||
-      a.chunkIndex - b.chunkIndex
-  );
-
-  const overviewChunks = rankedChunks
-    .filter((chunk) => chunk.chunkIndex === 1)
-    .slice(0, MAX_DOCUMENTS_PER_CHAT);
-  const relevantChunks = rankedChunks.filter((chunk) => chunk.score > 0).slice(0, 8);
-  const selected = [...overviewChunks, ...relevantChunks].filter(
-    (chunk, index, all) =>
-      all.findIndex(
-        (candidate) =>
-          candidate.documentName === chunk.documentName &&
-          candidate.chunkIndex === chunk.chunkIndex
-      ) === index
-  );
+  const shouldUseWholeDocument = isWholeDocumentQuery(query);
+  const rankedChunks = createRankedChunks(indexedDocuments, tokenize(query));
+  const selected = selectChunks({ rankedChunks, shouldUseWholeDocument });
   let usedChars = 0;
   const sections = [];
 
@@ -239,6 +288,7 @@ export const getRelevantDocumentContext = async ({
   }
 
   return {
+    mode: shouldUseWholeDocument ? 'whole-document' : 'relevant',
     documents: documents.map((document) => ({
       id: document._id?.toString?.() || document.id,
       originalName: document.originalName,

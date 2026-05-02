@@ -2,8 +2,6 @@ import mongoose from 'mongoose';
 import { CHAT_TIMEOUT_MS, streamAiChat } from '../services/aiClient.js';
 import { getRelevantDocumentContext } from '../services/documentContext.js';
 
-const MAX_MESSAGES = 20;
-const MAX_MESSAGE_LENGTH = 4000;
 const MAX_DOCUMENT_IDS = 5;
 
 const createHttpError = (message, statusCode = 400) => {
@@ -12,14 +10,38 @@ const createHttpError = (message, statusCode = 400) => {
   return error;
 };
 
+const formatRetryTime = (retryAfterMs) => {
+  if (!Number.isFinite(retryAfterMs) || retryAfterMs <= 0) {
+    return '';
+  }
+
+  const seconds = Math.max(1, Math.ceil(retryAfterMs / 1000));
+  return ` Please retry in about ${seconds}s.`;
+};
+
+const buildStreamErrorMessage = (error, isTimeout) => {
+  if (isTimeout) {
+    return '\n\n[The AI response timed out. Please try again.]';
+  }
+
+  const status = error?.upstreamStatus || error?.statusCode;
+  if (status === 429) {
+    const retryHint = formatRetryTime(error?.retryAfterMs);
+    return `\n\n[AI quota/rate limit reached.${retryHint}]`;
+  }
+
+  if (status === 401 || status === 403) {
+    return '\n\n[AI provider authentication failed. Please check API keys.]';
+  }
+
+  return '\n\n[The AI response failed. Please try again.]';
+};
+
 const validateMessages = (messages) => {
   if (!Array.isArray(messages) || messages.length === 0) {
     throw createHttpError('Please send at least one chat message.');
   }
 
-  if (messages.length > MAX_MESSAGES) {
-    throw createHttpError(`Please send no more than ${MAX_MESSAGES} messages.`);
-  }
 
   return messages.map((message) => {
     const role = message?.role;
@@ -33,9 +55,7 @@ const validateMessages = (messages) => {
       throw createHttpError('Chat message content is required.');
     }
 
-    if (content.length > MAX_MESSAGE_LENGTH) {
-      throw createHttpError(`Chat messages must be ${MAX_MESSAGE_LENGTH} characters or less.`);
-    }
+   
 
     return { role, content };
   });
@@ -75,7 +95,7 @@ const validateClientDocuments = (documents) => {
     .slice(0, MAX_DOCUMENT_IDS);
 };
 
-const addDocumentContextToMessages = ({ messages, context, documents }) => {
+const addDocumentContextToMessages = ({ messages, context, documents, mode }) => {
   if (!context && documents.length === 0) {
     return messages;
   }
@@ -110,9 +130,13 @@ const addDocumentContextToMessages = ({ messages, context, documents }) => {
       content: [
         'DOCUMENT_CONTEXT_START',
         'Use this uploaded file context silently as part of the conversation. These are the only target files for the current user question.',
+        mode === 'whole-document'
+          ? 'This is WHOLE_DOCUMENT_CONTEXT. If the context or metadata says there are N main sections, output N top-level bullets and cover every main section. Do not stop after Part 1.'
+          : 'This is RELEVANT_EXCERPT_CONTEXT. Answer only from the relevant excerpts.',
         'Do not answer from other uploaded files unless they are listed in this context.',
         'If the user asks what file was uploaded, answer from Uploaded files and Document overview.',
         'If answering from document contents, cite sources in Thai format: อ้างอิง: หน้า X บรรทัด Y-Z',
+        'If the user asks to summarize the whole file or asks what is in the file, cover every main section present in the provided excerpts, not only the first matching section.',
         'If the answer is not found in the context, say it was not found in the uploaded document context.',
         '',
         'Uploaded files:',
@@ -121,7 +145,11 @@ const addDocumentContextToMessages = ({ messages, context, documents }) => {
         'Document overview:',
         documentPreviews || 'No document overview is available.',
         '',
-        context ? 'Relevant excerpts:' : 'Relevant excerpts: none available.',
+        context
+          ? mode === 'whole-document'
+            ? 'Whole document excerpts:'
+            : 'Relevant excerpts:'
+          : 'Relevant excerpts: none available.',
         context || 'No readable text excerpts are available for these files.',
         'DOCUMENT_CONTEXT_END',
         '',
@@ -160,6 +188,7 @@ export const streamChat = async (req, res, next) => {
         messages,
         context: documentContext.context,
         documents: documentContext.documents,
+        mode: documentContext.mode,
       });
     }
   } catch (error) {
@@ -192,10 +221,10 @@ export const streamChat = async (req, res, next) => {
     });
   } catch (error) {
     if (!res.writableEnded) {
-      const message =
+      const message = buildStreamErrorMessage(
+        error,
         abortController.signal.aborted || error.name === 'AbortError'
-          ? '\n\n[The AI response timed out. Please try again.]'
-          : '\n\n[The AI response failed. Please try again.]';
+      );
       res.write(message);
     }
   } finally {
