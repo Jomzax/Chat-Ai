@@ -389,12 +389,12 @@ export default function ChatPanel({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto px-10 py-12">
+    <div className="flex h-full min-h-0 flex-1 flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-12">
         <div className="mx-auto max-w-4xl">
           {messages.length === 0 ? (
             <div className="space-y-2">
-              <h1 className="text-4xl font-bold text-slate-900">
+              <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">
                 วันนี้ให้ช่วยอะไรดี
               </h1>
               <p className="text-slate-500">
@@ -402,21 +402,21 @@ export default function ChatPanel({
               </p>
             </div>
           ) : (
-            <div className="space-y-5">
+            <div className="space-y-4 sm:space-y-5">
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"
+                  className={`flex gap-2.5 sm:gap-3 ${message.role === "user" ? "justify-end" : "justify-start"
                     }`}
                 >
                   {message.role === "assistant" ? (
-                    <div className="mt-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-slate-900 text-white">
+                    <div className="mt-1 hidden h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-slate-900 text-white sm:flex">
                       <Bot className="h-4 w-4" />
                     </div>
                   ) : null}
 
                   <div
-                    className={`max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm ${message.role === "user"
+                    className={`max-w-[90%] rounded-2xl px-3.5 py-2.5 text-sm leading-6 shadow-sm sm:max-w-[82%] sm:px-4 sm:py-3 ${message.role === "user"
                         ? "bg-indigo-600 text-white"
                         : "border border-slate-200 bg-white text-slate-800"
                       } ${message.status === "error"
@@ -463,7 +463,7 @@ export default function ChatPanel({
                   </div>
 
                   {message.role === "user" ? (
-                    <div className="mt-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-700">
+                    <div className="mt-1 hidden h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 sm:flex">
                       <UserRound className="h-4 w-4" />
                     </div>
                   ) : null}
@@ -475,7 +475,7 @@ export default function ChatPanel({
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-slate-200 bg-slate-10 px-10 py-3">
+      <div className="sticky bottom-0 z-20 shrink-0 border-t border-slate-200 bg-slate-50 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 lg:px-10">
         <div className="mx-auto max-w-4xl">
           {error ? (
             <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">

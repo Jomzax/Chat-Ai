@@ -237,7 +237,7 @@ export default function MessageInput({
 
       <form
         onSubmit={handleSubmit}
-        className="rounded-[28px] border border-slate-200 bg-white px-4 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.08)]"
+        className="rounded-[24px] border border-slate-200 bg-white px-3 py-3 shadow-[0_10px_30px_rgba(15,23,42,0.08)] sm:rounded-[28px] sm:px-4 sm:py-4"
       >
         <input
           ref={fileInputRef}
@@ -262,7 +262,7 @@ export default function MessageInput({
                       handleOpenPreview(file.id);
                     }
                   }}
-                  className="group relative h-40 w-40 flex-shrink-0 overflow-hidden rounded-3xl border border-slate-200 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                  className="group relative h-32 w-32 flex-shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:h-40 sm:w-40 sm:rounded-3xl"
                 >
                   <button
                     type="button"
@@ -313,7 +313,7 @@ export default function MessageInput({
           </div>
         ) : null}
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <button
             type="button"
             title="Attach file"
@@ -345,7 +345,7 @@ export default function MessageInput({
           <button
             type="submit"
             disabled={isBusy}
-            className="rounded-2xl bg-indigo-600 p-3 text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-xl bg-indigo-600 p-2.5 text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-2xl sm:p-3"
           >
             {isUploading ? (
               <Loader2 className="h-4 w-4 animate-spin" />

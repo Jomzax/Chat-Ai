@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import type { ChatSession } from "@/types/chat";
 
 type Props = {
+  className?: string;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   sessions: ChatSession[];
@@ -38,6 +39,7 @@ function getInitials(name: string) {
 }
 
 export default function Sidebar({
+  className = "",
   isCollapsed,
   onToggleCollapse,
   sessions,
@@ -123,7 +125,7 @@ export default function Sidebar({
     <aside
       className={`relative flex h-full flex-shrink-0 flex-col border-r border-slate-200 bg-white text-slate-900 transition-all duration-200 ${
         isCollapsed ? "w-[92px]" : "w-[320px]"
-      }`}
+      } ${className}`}
     >
       <div
         className={`flex px-5 py-4 ${

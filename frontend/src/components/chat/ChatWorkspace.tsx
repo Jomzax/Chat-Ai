@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { PanelLeft } from "lucide-react";
 import {
   createConversation,
   deleteConversation,
@@ -38,6 +39,7 @@ export default function ChatWorkspace() {
   const [hasLoaded, setHasLoaded] = useState(false);
   const [syncError, setSyncError] = useState("");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const saveTimersRef = useRef<Record<string, number>>({});
 
   useEffect(() => {
@@ -84,6 +86,17 @@ export default function ChatWorkspace() {
       mounted = false;
       Object.values(saveTimers).forEach((timer) => window.clearTimeout(timer));
     };
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsMobileSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   const activeSession = useMemo(
@@ -151,6 +164,7 @@ export default function ChatWorkspace() {
 
   function handleSelectSession(sessionId: string) {
     setActiveSessionId(sessionId);
+    setIsMobileSidebarOpen(false);
   }
 
   function handleRenameSession(sessionId: string, title: string) {
@@ -269,19 +283,57 @@ export default function ChatWorkspace() {
   }
 
   return (
-    <div className="mt-0 flex h-screen overflow-hidden bg-slate-50 text-slate-900">
-      <Sidebar
-        isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed((current) => !current)}
-        sessions={sidebarSessions}
-        activeSessionId={activeSession.id}
-        onNewChat={handleNewChat}
-        onSelectSession={handleSelectSession}
-        onRenameSession={handleRenameSession}
-        onDeleteSession={handleDeleteSession}
+    <div className="mt-0 flex h-[100dvh] overflow-hidden bg-slate-50 text-slate-900">
+      <div className="hidden md:flex">
+        <Sidebar
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={() => setIsSidebarCollapsed((current) => !current)}
+          sessions={sidebarSessions}
+          activeSessionId={activeSession.id}
+          onNewChat={handleNewChat}
+          onSelectSession={handleSelectSession}
+          onRenameSession={handleRenameSession}
+          onDeleteSession={handleDeleteSession}
+        />
+      </div>
+
+      <div
+        className={`fixed inset-0 z-40 bg-slate-900/30 transition-opacity md:hidden ${
+          isMobileSidebarOpen
+            ? "pointer-events-auto opacity-100"
+            : "pointer-events-none opacity-0"
+        }`}
+        onClick={() => setIsMobileSidebarOpen(false)}
       />
+      <div
+        className={`fixed inset-y-0 left-0 z-50 transition-transform duration-200 md:hidden ${
+          isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <Sidebar
+          className="w-[86vw] max-w-[340px]"
+          isCollapsed={false}
+          onToggleCollapse={() => setIsMobileSidebarOpen(false)}
+          sessions={sidebarSessions}
+          activeSessionId={activeSession.id}
+          onNewChat={handleNewChat}
+          onSelectSession={handleSelectSession}
+          onRenameSession={handleRenameSession}
+          onDeleteSession={handleDeleteSession}
+        />
+      </div>
 
       <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-50">
+        <div className="border-b border-slate-200 bg-white px-4 py-2 md:hidden">
+          <button
+            type="button"
+            onClick={() => setIsMobileSidebarOpen(true)}
+            className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+            title="Open chats"
+          >
+            <PanelLeft className="h-5 w-5" />
+          </button>
+        </div>
         {syncError ? (
           <div className="border-b border-amber-200 bg-amber-50 px-6 py-2 text-sm text-amber-700">
             {syncError}
