@@ -3,6 +3,7 @@ import cors from 'cors';
 import express from 'express';
 import session from 'express-session';
 import MongoStore from 'connect-mongo';
+import mongoose from 'mongoose';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import connectMongo from './db/mongo.js';
@@ -21,6 +22,10 @@ const allowedOrigins = (process.env.FRONTEND_ORIGIN || 'http://127.0.0.1:3000,ht
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
+const hasHttpsOrigin = allowedOrigins.some((origin) => origin.startsWith('https://'));
+const forceCookieSecure = process.env.SESSION_COOKIE_SECURE === 'true';
+const cookieSecure = forceCookieSecure || (isProduction && hasHttpsOrigin);
+const cookieSameSite = cookieSecure ? 'none' : 'lax';
 
 if (isProduction && !process.env.SESSION_SECRET) {
   throw new Error('SESSION_SECRET is required in production.');
@@ -58,8 +63,8 @@ app.use(
     cookie: {
       httpOnly: true,
       maxAge: Number(process.env.SESSION_TTL_SECONDS || 60 * 60 * 24) * 1000,
-      sameSite: isProduction ? 'none' : 'lax',
-      secure: isProduction,
+      sameSite: cookieSameSite,
+      secure: cookieSecure,
     },
   })
 );
@@ -68,7 +73,17 @@ app.use('/uploads', express.static(resolve(process.cwd(), 'uploads')));
 app.use('/api', routes);
 
 app.get('/health', (req, res) => {
-  res.json({ ok: true });
+  const mongoReady = mongoose.connection.readyState === 1;
+  const ok = mongoReady;
+  const statusCode = ok ? 200 : 503;
+
+  res.status(statusCode).json({
+    ok,
+    checks: {
+      mongo: mongoReady ? 'up' : 'down',
+      api: ok ? 'up' : 'down',
+    },
+  });
 });
 
 app.use((err, req, res, next) => {

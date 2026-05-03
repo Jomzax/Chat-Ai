@@ -1,15 +1,45 @@
-# --------------------
-# MongoDB
-# --------------------
 services:
-    mongodb:
-        image: mongo:6
-        container_name: chat-ai-mongo
-        restart: no
-        ports:
-            - "27017:27017"
-        volumes:
-        - mongo_data:/data/db
-    
+  mongodb:
+    image: mongo:6
+    container_name: chat-ai-mongo
+    restart: no
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: chat-ai-backend
+    restart: no
+    depends_on:
+      mongodb:
+        condition: service_started
+    env_file:
+      - ./backend/.env
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./backend/uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4000/health"]
+    # ใช้คำสั่ง healthcheck เพื่อให้แน่ใจว่า backend พร้อมก่อนที่ frontend จะเริ่ม ใช้ http://localhost:4000/health หรือ http://127.0.0.1:4000/health
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: chat-ai-frontend
+    restart: no
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      INTERNAL_API_BASE_URL: http://backend:4000/api
+    ports:
+      - "3000:3000"
+
 volumes:
-    mongo_data:
+  mongo_data:

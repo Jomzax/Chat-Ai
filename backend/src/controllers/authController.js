@@ -68,6 +68,17 @@ export const getSession = async (req, res, next) => {
 };
 
 export const logout = (req, res) => {
+  const allowedOrigins = (
+    process.env.FRONTEND_ORIGIN || 'http://127.0.0.1:3000,http://localhost:3000'
+  )
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  const hasHttpsOrigin = allowedOrigins.some((origin) => origin.startsWith('https://'));
+  const forceCookieSecure = process.env.SESSION_COOKIE_SECURE === 'true';
+  const cookieSecure = forceCookieSecure || (process.env.NODE_ENV === 'production' && hasHttpsOrigin);
+  const cookieSameSite = cookieSecure ? 'none' : 'lax';
+
   req.session.destroy((destroyError) => {
     if (destroyError) {
       return res.status(500).json({ message: 'Unable to end session.' });
@@ -75,8 +86,8 @@ export const logout = (req, res) => {
 
     res.clearCookie(process.env.SESSION_COOKIE_NAME || 'chat_ai.sid', {
       httpOnly: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      secure: process.env.NODE_ENV === 'production',
+      sameSite: cookieSameSite,
+      secure: cookieSecure,
     });
     return res.json({ message: 'Logged out.' });
   });
